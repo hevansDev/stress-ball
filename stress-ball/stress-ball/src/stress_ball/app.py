@@ -162,19 +162,19 @@ class stressball(toga.App):
         
         ports = serial.tools.list_ports.comports()
         
-        # Look for Pico
+        # Look for Pico by manufacturer or device pattern
         for port in ports:
             if 'usb' in port.device.lower():
-                if port.manufacturer and 'raspberry' in port.manufacturer.lower():
+                # Check for MicroPython or Raspberry Pi manufacturer
+                if port.manufacturer and ('micropython' in port.manufacturer.lower() or 
+                                        'raspberry' in port.manufacturer.lower()):
                     return port.device
-                if 'pico' in str(port.description).lower():
+                # Check description
+                if 'pico' in str(port.description).lower() or 'board in fs mode' in str(port.description).lower():
                     return port.device
+                # Any usbmodem device
                 if 'usbmodem' in port.device.lower():
                     return port.device
-        
-        for port in ports:
-            if 'usb' in port.device.lower():
-                return port.device
         
         return None
     
