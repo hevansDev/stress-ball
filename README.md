@@ -10,6 +10,10 @@ Put a stress-gauge in a stress-ball
 - Raspberry Pi Pico with force sensor connected via USB
 - macOS, Windows, or Linux
 
+Install `main.py` on your Pico with [Thonny](https://projects.raspberrypi.org/en/projects/getting-started-with-the-pico)
+
+[Instructions for connecting a stress sensor to the Pico](https://newbiely.com/tutorials/raspberry-pico/raspberry-pi-pico-force-sensor)
+
 ## Installation
 
 1. Clone the repository:
