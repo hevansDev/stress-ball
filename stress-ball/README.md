@@ -2,6 +2,8 @@
 
 Put a stress-gauge in a stress-ball
 
+![](stress-ball.gif)
+
 ## Requirements
 
 - Python 3.13+
