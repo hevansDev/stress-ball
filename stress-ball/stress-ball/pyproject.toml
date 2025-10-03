@@ -11,6 +11,7 @@ author_email = "hugh.evans.dev@gmail.com"
 [tool.briefcase.app.stress-ball]
 formal_name = "stress-ball"
 description = "Stress-guage stress-ball"
+icon = "src/stress_ball/resources/icon"
 long_description = """More details about the app should go here.
 """
 sources = [
