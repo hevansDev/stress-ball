@@ -2,7 +2,7 @@
 
 Put a stress-gauge in a stress-ball
 
-![](stress-ball.gif)
+![](stress-ball.gif) ![](stress-ball-press.gif)
 
 ## Requirements
 
