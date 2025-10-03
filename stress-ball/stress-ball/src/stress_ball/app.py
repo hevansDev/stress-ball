@@ -117,7 +117,14 @@ class stressball(toga.App):
     
     def read_loop(self):
         try:
-            ser = serial.Serial('/dev/cu.usbmodem1201', baudrate=115200, timeout=1)
+            # Auto-detect Pico port
+            port = self.find_pico_port()
+            if not port:
+                print("Error: Could not find Pico")
+                return
+            
+            print(f"Connecting to Pico on {port}")
+            ser = serial.Serial(port, baudrate=115200, timeout=1)
             
             while self.is_reading:
                 if ser.in_waiting > 0:
@@ -137,6 +144,33 @@ class stressball(toga.App):
             
         except Exception as e:
             print(f"Error: {e}")
+
+    def find_pico_port(self):
+        """Find the Raspberry Pi Pico USB port automatically."""
+        import serial.tools.list_ports
+        
+        ports = serial.tools.list_ports.comports()
+        
+        # Look for Pico by USB VID/PID or description
+        for port in ports:
+            # Pico shows up with these identifiers
+            if 'usb' in port.device.lower():
+                # Check if it's likely a Pico by description or manufacturer
+                if port.manufacturer and 'raspberry' in port.manufacturer.lower():
+                    return port.device
+                # Or check for common Pico patterns
+                if 'pico' in str(port.description).lower():
+                    return port.device
+                # Fallback: any usbmodem device (macOS pattern)
+                if 'usbmodem' in port.device.lower():
+                    return port.device
+        
+        # If no clear match, return the first USB serial device
+        for port in ports:
+            if 'usb' in port.device.lower():
+                return port.device
+        
+        return None
     
     def loop_call(self, func):
         self.event_loop.call_soon_threadsafe(func)
