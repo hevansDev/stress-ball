@@ -16,7 +16,7 @@ class stressball(toga.App):
         self.is_reading = True
         self.current_value = 0
         self.event_loop = asyncio.get_event_loop()
-
+        
         self.stress_levels = [
             {"min": 0, "max": 200, "image": "level0.png", "label": "Relaxed"},
             {"min": 201, "max": 400, "image": "level1.png", "label": "Light Pressure"},
@@ -24,10 +24,12 @@ class stressball(toga.App):
             {"min": 601, "max": 750, "image": "level3.png", "label": "Heavy Pressure"},
             {"min": 751, "max": 1000, "image": "level4.png", "label": "Maximum Squeeze!"},
         ]
-
-        main_box = toga.Box(style=Pack(direction=COLUMN, padding=10, alignment='center'))
-
-        # Image display FIRST (at top, centered)
+        
+        main_box = toga.Box(
+            style=Pack(direction=COLUMN, padding=10, alignment='center', background_color='#ced9ed')
+        )
+        
+        # Image display
         try:
             self.image_view = toga.ImageView(
                 image=toga.Image(self.paths.app / "resources" / self.stress_levels[0]["image"]),
@@ -39,34 +41,44 @@ class stressball(toga.App):
                 'Images not found',
                 style=Pack(padding=20, font_size=14)
             )
-
-        self.canvas = toga.Canvas(style=Pack(width=600, height=100, padding=10))
+        
+        # Canvas gauge - wider to accommodate overflow
+        self.canvas = toga.Canvas(style=Pack(width=350, height=100, padding=10))
         self.draw_gauge(0)
-
+        
         main_box.add(self.image_view)
         main_box.add(self.canvas)
-
-        self.main_window = toga.MainWindow(title=self.formal_name)
+        
+        self.main_window = toga.MainWindow(title=self.formal_name, size=(370, 500))
         self.main_window.content = main_box
         self.main_window.show()
-
-        # Start reading automatically
+        
         threading.Thread(target=self.read_loop, daemon=True).start()
-    
+
     def draw_gauge(self, value):
         """Draw a loading bar style gauge."""
         ctx = self.canvas.context
         
+        # Clear the entire canvas
         ctx.begin_path()
-        ctx.rect(0, 0, 600, 100)
-        ctx.fill('white')
+        ctx.rect(0, 0, 350, 100)
+        ctx.fill('#ced9ed')
         
+        bar_x = 45  # Centered in 350px canvas
+        bar_width = 260
+        bar_y = 30
+        bar_height = 40
+        
+        # Draw background bar
         ctx.begin_path()
-        ctx.rect(50, 30, 500, 40)
+        ctx.rect(bar_x, bar_y, bar_width, bar_height)
         ctx.fill('lightgray')
         
-        fill_width = min((value / 1000) * 500, 500)
+        # Scale: 0-750 maps to bar width, overflow up to 50px
+        fill_width = (value / 750) * bar_width
+        fill_width = min(fill_width, bar_width + 50)  # Allow 50px overflow
         
+        # Color based on value
         if value < 200:
             color = 'green'
         elif value < 400:
@@ -78,32 +90,30 @@ class stressball(toga.App):
         else:
             color = 'red'
         
+        # Draw filled portion
         if fill_width > 0:
             ctx.begin_path()
-            ctx.rect(50, 30, fill_width, 40)
+            ctx.rect(bar_x, bar_y, fill_width, bar_height)
             ctx.fill(color)
         
+        # Draw border
         ctx.begin_path()
-        ctx.rect(50, 30, 500, 40)
+        ctx.rect(bar_x, bar_y, bar_width, bar_height)
         ctx.stroke('black', line_width=2)
         
-        for i in range(0, 11):
-            x = 50 + (i * 50)
-            label_value = i * 100
+        # Draw tick marks
+        tick_values = [0, 150, 300, 450, 600, 750]
+        for val in tick_values:
+            x = bar_x + (val / 750) * bar_width
             
-            if i % 2 == 0:
-                ctx.begin_path()
-                ctx.move_to(x, 30)
-                ctx.line_to(x, 20)
-                ctx.stroke('black', line_width=2)
-                
-                ctx.begin_path()
-                ctx.write_text(str(label_value), x - 15, 10)
-            else:
-                ctx.begin_path()
-                ctx.move_to(x, 30)
-                ctx.line_to(x, 25)
-                ctx.stroke('gray', line_width=1)
+            ctx.begin_path()
+            ctx.move_to(x, bar_y)
+            ctx.line_to(x, bar_y - 10)
+            ctx.stroke('black', line_width=2)
+            
+            offset = 15 if val >= 100 else 10
+            ctx.begin_path()
+            ctx.write_text(str(val), x - offset, bar_y - 15)
     
     def read_loop(self):
         try:
