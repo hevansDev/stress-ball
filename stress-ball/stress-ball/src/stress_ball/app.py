@@ -116,34 +116,45 @@ class stressball(toga.App):
             ctx.write_text(str(val), x - offset, bar_y - 15)
     
     def read_loop(self):
-        try:
-            # Auto-detect Pico port
-            port = self.find_pico_port()
-            if not port:
-                print("Error: Could not find Pico")
-                return
-            
-            print(f"Connecting to Pico on {port}")
-            ser = serial.Serial(port, baudrate=115200, timeout=1)
-            
-            while self.is_reading:
-                if ser.in_waiting > 0:
-                    line = ser.readline().decode('utf-8').strip()
-                    
+        """Continuously read from the stress gauge with auto-reconnect."""
+        while self.is_reading:
+            try:
+                # Auto-detect Pico port
+                port = self.find_pico_port()
+                if not port:
+                    print("Waiting for Pico...")
+                    time.sleep(2)  # Wait before trying again
+                    continue
+                
+                print(f"Connecting to Pico on {port}")
+                ser = serial.Serial(port, baudrate=115200, timeout=1)
+                
+                # Read loop - will exit if device disconnects
+                while self.is_reading:
                     try:
-                        value = float(line)
-                        self.current_value = value
-                        self.update_gauge(value)
-                        self.update_image_for_value(value)
-                    except ValueError:
-                        pass
-                else:
-                    time.sleep(0.01)
-            
-            ser.close()
-            
-        except Exception as e:
-            print(f"Error: {e}")
+                        if ser.in_waiting > 0:
+                            line = ser.readline().decode('utf-8').strip()
+                            
+                            try:
+                                value = float(line)
+                                self.current_value = value
+                                self.update_gauge(value)
+                                self.update_image_for_value(value)
+                            except ValueError:
+                                pass
+                        else:
+                            time.sleep(0.01)
+                    except (serial.SerialException, OSError):
+                        # Device disconnected
+                        print("Pico disconnected, waiting for reconnect...")
+                        break
+                
+                ser.close()
+                
+            except (serial.SerialException, OSError) as e:
+                # Failed to connect or device disconnected
+                print(f"Connection error: {e}")
+                time.sleep(2)  # Wait before retrying
 
     def find_pico_port(self):
         """Find the Raspberry Pi Pico USB port automatically."""
@@ -151,21 +162,16 @@ class stressball(toga.App):
         
         ports = serial.tools.list_ports.comports()
         
-        # Look for Pico by USB VID/PID or description
+        # Look for Pico
         for port in ports:
-            # Pico shows up with these identifiers
             if 'usb' in port.device.lower():
-                # Check if it's likely a Pico by description or manufacturer
                 if port.manufacturer and 'raspberry' in port.manufacturer.lower():
                     return port.device
-                # Or check for common Pico patterns
                 if 'pico' in str(port.description).lower():
                     return port.device
-                # Fallback: any usbmodem device (macOS pattern)
                 if 'usbmodem' in port.device.lower():
                     return port.device
         
-        # If no clear match, return the first USB serial device
         for port in ports:
             if 'usb' in port.device.lower():
                 return port.device
